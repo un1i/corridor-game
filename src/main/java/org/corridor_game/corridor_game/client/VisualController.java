@@ -11,9 +11,9 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
-import org.corridor_game.corridor_game.messages.*;
+import org.corridor_game.corridor_game.client.generated_proxy.*;
 
-import java.util.ArrayList;
+import java.util.List;
 
 public class VisualController {
     ClientManager manager = BClientManager.getManager();
@@ -89,10 +89,10 @@ public class VisualController {
         }
     }
 
-    public void startGame(StartGameMsg msg) {
+    public void startGame(StartGameData data) {
         Platform.runLater(()-> {
-            setCurMove(msg.isCurMove());
-            fillStatField(msg.getNumPlayers());
+            setCurMove(data.isCurMove());
+            fillStatField(data.getNumPlayers());
             if (finish_window != null) {
                 reset();
                 finish_window.close();
@@ -104,18 +104,17 @@ public class VisualController {
         });
     }
 
-    public void finishGame(FinishGameMsg msg) {
+    public void finishGame(FinishGameData data) {
         Platform.runLater(() -> {
-            updateField(msg.getPainterId(), msg.getLine(), msg.getCells());
-            finish_window = new FinishWindow(msg.isWinner(), msg.getScore());
+            finish_window = new FinishWindow(data.isWinner(), data.getScore());
             finish_window.show();
         });
     }
 
-    public void UpdateGameStatus(UpdateGameStatusMsg msg) {
+    public void UpdateGameStatus(UpdateGameStatusData data) {
         Platform.runLater(()-> {
-            updateField(msg.getPainterId(), msg.getLine(), msg.getCells());
-            setCurMove(msg.isCurMove());
+            updateField(data.getPainterId(), data.getLine(), data.getCells());
+            setCurMove(data.isCurMove());
         });
     }
     private void fillStatField(int num_players) {
@@ -135,14 +134,14 @@ public class VisualController {
         }
     }
 
-    private void updateField(int painter_id, PaintingLine line, ArrayList<Integer> colored_cells) {
-        if (line.type == LineType.HORIZONTAL) {
-            horizontal_lines[line.index].setStroke(colors_for_players[painter_id]);
-            horizontal_lines[line.index].toFront();
+    private void updateField(int painter_id, PaintingLine line, List<Integer> colored_cells) {
+        if (line.getType() == LineType.HORIZONTAL) {
+            horizontal_lines[line.getIndex()].setStroke(colors_for_players[painter_id]);
+            horizontal_lines[line.getIndex()].toFront();
         }
         else {
-            vertical_lines[line.index].setStroke(colors_for_players[painter_id]);
-            vertical_lines[line.index].toFront();
+            vertical_lines[line.getIndex()].setStroke(colors_for_players[painter_id]);
+            vertical_lines[line.getIndex()].toFront();
         }
 
         for (int cell_id : colored_cells) {

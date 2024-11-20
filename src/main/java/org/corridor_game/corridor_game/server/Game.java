@@ -1,20 +1,21 @@
 package org.corridor_game.corridor_game.server;
 
-import org.corridor_game.corridor_game.messages.LineType;
-import org.corridor_game.corridor_game.messages.PaintingLine;
+import org.corridor_game.corridor_game.server.data.LineType;
+import org.corridor_game.corridor_game.server.data.PaintingLine;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 
 public class Game {
-    ServerManager manager;
+    org.corridor_game.corridor_game.server.ServerManager manager;
     static final int field_size = 3;
+    static final int num_lines_in_row = field_size + 1;
     static final int total_cells = field_size * field_size;
     int num_colored_cells = 0;
     int cur_move_id = 0;
     int[] cells = new int[field_size * field_size];
-    boolean[] vertical_lines = new boolean[field_size * (field_size + 1)];
-    boolean[] horizontal_lines = new boolean[field_size * (field_size + 1)];
+    boolean[] vertical_lines = new boolean[field_size * num_lines_in_row];
+    boolean[] horizontal_lines = new boolean[field_size * num_lines_in_row];
     ArrayList<Integer> player_score;
     Game(ServerManager manager_) {
         manager = manager_;
@@ -33,7 +34,6 @@ public class Game {
         Arrays.fill(horizontal_lines, false);
         Arrays.fill(cells, 0);
         player_score.replaceAll(ignored -> 0);
-
     }
 
     PaintLineResult paintLine(int player_id, PaintingLine line) {
@@ -60,25 +60,25 @@ public class Game {
             }
 
             if (line.index - field_size >= 0 && ++cells[line.index - field_size] == 4) {
-                colorCell(line.index - 3, player_id, colored_cells);
+                colorCell(line.index - field_size, player_id, colored_cells);
             }
         }
         else {
-            if (line.index % 4 == 0) {
-                if (++cells[line.index / 4 * 3] == 4) {
+            if (line.index % num_lines_in_row == 0) {
+                if (++cells[line.index / num_lines_in_row * field_size] == 4) {
                     colorCell(line.index / 4 * 3, player_id, colored_cells);
                 }
             }
-            else if (line.index % 4 == 3) {
-                if (++cells[line.index - 1 - line.index / 4] == 4) {
-                    colorCell(line.index - 1 - line.index / 4, player_id, colored_cells);
+            else if (line.index % num_lines_in_row == field_size) {
+                if (++cells[line.index - 1 - line.index / num_lines_in_row] == 4) {
+                    colorCell(line.index - 1 - line.index / num_lines_in_row, player_id, colored_cells);
                 }
             }
             else {
-                if (++cells[line.index - line.index / 4] == 4) {
-                    colorCell(line.index - line.index / 4, player_id, colored_cells);
+                if (++cells[line.index - line.index / num_lines_in_row] == 4) {
+                    colorCell(line.index - line.index / num_lines_in_row, player_id, colored_cells);
                 }
-                if (++cells[line.index - 1 - line.index / 4] == 4) {
+                if (++cells[line.index - 1 - line.index / num_lines_in_row] == 4) {
                     colorCell(line.index - 1 - line.index / 4, player_id, colored_cells);
                 }
             }

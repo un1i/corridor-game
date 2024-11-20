@@ -1,18 +1,20 @@
 package org.corridor_game.corridor_game.server;
 
-import org.corridor_game.corridor_game.messages.PaintingLine;
+import org.corridor_game.corridor_game.server.data.*;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Queue;
 
 public class Player {
-    private int id;
+    private final int id;
     private boolean is_ready;
-    ClientConnection connection;
+    Queue<UpdateGameStatusData> messages;
 
-    Player(int id_, ClientConnection connection_) {
+    Player(int id_) {
+        messages = new LinkedList<>();
         id = id_;
         is_ready = false;
-        connection = connection_;
     }
 
     public void setReady(boolean value) {
@@ -23,16 +25,31 @@ public class Player {
         return is_ready;
     }
 
-    public void startGame(int cur_move_id, int num_players) {
-        connection.sendStartGame(cur_move_id == id, num_players);
+    public StartGameData getStartGameData(int cur_move_id, int num_players) {
+        return new StartGameData(id == cur_move_id, num_players);
     }
 
-    public void updateGameStatus(int painter_id, PaintingLine line, ArrayList<Integer> cells, int cur_move_id) {
-        connection.sendUpdateGameStatus(painter_id, line, cells, cur_move_id == id);
+    public void updateGameStatus(int painter_id, PaintingLine line, ArrayList<Integer> cells,
+                                 int cur_move_id, boolean is_finish) {
+        messages.add(new UpdateGameStatusData(painter_id, line, cells, cur_move_id == id, is_finish));
     }
 
-    public void giveFinishResult(int painter_id, PaintingLine line, ArrayList<Integer> cells,
-                                 ArrayList<Integer> score, int winner_id) {
-        connection.sendFinishResult(painter_id, line, cells, score, winner_id == id);
+    public ArrayList<UpdateGameStatusData> sendGameData() {
+        ArrayList<UpdateGameStatusData> res = new ArrayList<>();
+        while (!messages.isEmpty()) {
+            res.add(messages.poll());
+        }
+        return res;
+    }
+
+    public FinishGameData getFinishGameData(ArrayList<Integer> score) {
+        boolean is_winner = true;
+        for (Integer s : score) {
+            if (s > score.get(id)) {
+                is_winner = false;
+                break;
+            }
+        }
+        return new FinishGameData(score, is_winner);
     }
 }

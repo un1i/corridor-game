@@ -1,4 +1,4 @@
-package org.corridor_game.corridor_game.messages;
+package org.corridor_game.corridor_game.server.data;
 
 import java.io.Serializable;
 

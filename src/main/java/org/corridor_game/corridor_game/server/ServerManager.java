@@ -1,97 +1,95 @@
 package org.corridor_game.corridor_game.server;
 
-import org.corridor_game.corridor_game.messages.PaintingLine;
+import org.corridor_game.corridor_game.server.data.FinishGameData;
+import org.corridor_game.corridor_game.server.data.PaintingLine;
+import org.corridor_game.corridor_game.server.data.StartGameData;
+import org.corridor_game.corridor_game.server.data.UpdateGameStatusData;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
+import javax.jws.WebService;
+import javax.jws.WebMethod;
+
+@WebService
 public class ServerManager {
-    SocketServer socket;
+    public static final int port = 5555;
     Game game;
+    boolean is_game_started;
     ArrayList<Player> players;
-    HashMap<Integer, Integer> player_id_by_port;
 
     ServerManager() {
         players = new ArrayList<>();
-        player_id_by_port = new HashMap<>();
         game = new Game(this);
-        socket = new SocketServer(this);
+        is_game_started = false;
     }
 
-    public void runServer() {
-        socket.waitNewPlayers();
+    public int addNewPlayer() {
+        if (players.size() < 2) {
+            int id = game.addNewPlayer();
+            players.add(new Player(id));
+            return id;
+        }
+        return -1;
     }
 
-    public void addNewPlayer(ClientConnection connection) {
-        int id = game.addNewPlayer();
-        player_id_by_port.put(connection.getPort(), id);
-        players.add(new Player(id, connection));
-    }
-    public ArrayList<Player> getPlayers() {
-        return players;
-    }
 
-    public void processReadyMsg(int port) {
-        setReady(port);
+    public void setReady(int id) {
+        players.get(id).setReady(true);
         tryStartGame();
     }
 
-    void reset() {
+    public boolean isGameStarted() {
+        return is_game_started;
+    }
+
+    public StartGameData getStartGameData(int id) {
+        return players.get(id).getStartGameData(game.getCurMoveId(), players.size());
+    }
+
+    public void paintLine(int id, PaintingLine line) {
+        int painter_id = game.getCurMoveId();
+        PaintLineResult result = game.paintLine(id, line);
+        boolean is_finish = result.type == PaintLineResultType.FINISH;
+        if (is_finish || result.type == PaintLineResultType.NEW_COLORED_CELLS) {
+            updateGameStatusForPlayers(painter_id, line, result.colored_cells, is_finish);
+        }
+        if (is_finish) {
+            finishGame();
+        }
+    }
+
+    public ArrayList<UpdateGameStatusData> updateGameData(int id) {
+        return players.get(id).sendGameData();
+    }
+
+    public FinishGameData getFinishGameData(int id) {
+        return players.get(id).getFinishGameData(game.getPlayerScore());
+    }
+
+    @WebMethod(exclude = true)
+    void finishGame() {
         for (Player player : players) {
             player.setReady(false);
         }
-        game.reset();
+        is_game_started = false;
     }
 
-    public void processPaintLineMsg(int port, PaintingLine line) {
-        int painter_id = game.getCurMoveId();
-        PaintLineResult result = game.paintLine(player_id_by_port.get(port), line);
-        if (result.type == PaintLineResultType.NEW_COLORED_CELLS) {
-            updateGameStatusForPlayers(painter_id, line, result.colored_cells);
-        }
-        else if (result.type == PaintLineResultType.FINISH) {
-            giveFinishResultToPlayers(painter_id, line, result.colored_cells);
-            reset();
-        }
-    }
-
-    public void setReady(int port) {
-        int id = player_id_by_port.get(port);
-        players.get(id).setReady(true);
-    }
-
+    @WebMethod(exclude = true)
     void tryStartGame() {
         for (Player player : players) {
             if (!player.isReady()) {
                 return;
             }
         }
-        int cur_move_id = game.getCurMoveId();
-        for (Player player : players) {
-            player.startGame(cur_move_id, players.size());
-        }
+        game.reset();
+        is_game_started = true;
     }
 
-    void updateGameStatusForPlayers(int painter_id, PaintingLine line, ArrayList<Integer> cells) {
+    @WebMethod(exclude = true)
+    void updateGameStatusForPlayers(int painter_id, PaintingLine line, ArrayList<Integer> cells, boolean is_finish) {
         int cur_move_id = game.getCurMoveId();
         for (Player player : players) {
-            player.updateGameStatus(painter_id, line, cells, cur_move_id);
-        }
-    }
-
-    void giveFinishResultToPlayers(int painter_id, PaintingLine line, ArrayList<Integer> cells) {
-        int winner_id = 0;
-        int max_score = 0;
-        ArrayList<Integer> score = game.getPlayerScore();
-        for (int i = 0; i < score.size(); i++) {
-            if (score.get(i) > max_score) {
-                winner_id = i;
-                max_score = score.get(i);
-            }
-        }
-
-        for (Player player : players) {
-            player.giveFinishResult(painter_id, line, cells, score, winner_id);
+            player.updateGameStatus(painter_id, line, cells, cur_move_id, is_finish);
         }
     }
 }

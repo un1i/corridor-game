@@ -9,16 +9,16 @@ import javafx.scene.text.Font;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
-import java.util.ArrayList;
+import java.util.List;
 
 public class FinishWindow {
     ClientManager manager = BClientManager.getManager();
     Stage window;
     boolean is_winner;
-    ArrayList<Integer> score;
+    List<Integer> score;
     Label info;
 
-    FinishWindow(boolean is_winner, ArrayList<Integer> score) {
+    FinishWindow(boolean is_winner, List<Integer> score) {
         this.is_winner = is_winner;
         this.score = score;
     }
